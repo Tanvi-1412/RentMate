@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment Variables & Secret Keys (CRITICAL SECURITY)
+.env
+.env.*
+!.env.example
+server/.env
+client/.env
+
+# Build & Output Folders
+dist/
+dist-ssr/
+build/
+.vite/
+client/dist/
+
+# Local File Storage & Media Uploads
+uploads/
+**/uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & System Files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
