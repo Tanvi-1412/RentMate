@@ -264,7 +264,6 @@ const MessagesPage = () => {
           )}
         </div>
       </div>
-    </div>
   );
 };
 
