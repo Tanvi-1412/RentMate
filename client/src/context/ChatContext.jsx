@@ -10,11 +10,16 @@ export const ChatProvider = ({ children }) => {
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
+  const [updatedConvEvent, setUpdatedConvEvent] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated && token) {
-      const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+      const serverUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+      const newSocket = io(serverUrl, {
         auth: { token },
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
       });
 
       newSocket.on('connect', () => {
@@ -28,27 +33,51 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
+      newSocket.on('conversationUpdated', (event) => {
+        setUpdatedConvEvent(event);
+      });
+
       newSocket.on('typing', ({ userId }) => setTypingUser(userId));
       newSocket.on('stopTyping', () => setTypingUser(null));
 
       setSocket(newSocket);
 
-      return () => newSocket.disconnect();
+      return () => {
+        newSocket.disconnect();
+      };
+    } else {
+      setSocket(null);
     }
   }, [isAuthenticated, token]);
 
+  // Automatically join conversation when activeConversation or socket changes
+  useEffect(() => {
+    if (socket && activeConversation) {
+      if (socket.connected) {
+        socket.emit('joinConversation', { conversationId: activeConversation });
+      }
+      const handleConnect = () => {
+        socket.emit('joinConversation', { conversationId: activeConversation });
+      };
+      socket.on('connect', handleConnect);
+      return () => {
+        socket.off('connect', handleConnect);
+      };
+    }
+  }, [socket, activeConversation]);
+
   const joinConversation = (conversationId) => {
-    if (socket) {
+    setActiveConversation(conversationId);
+    if (socket && socket.connected) {
       socket.emit('joinConversation', { conversationId });
-      setActiveConversation(conversationId);
     }
   };
 
   const leaveConversation = (conversationId) => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('leaveConversation', { conversationId });
-      setActiveConversation(null);
     }
+    setActiveConversation(null);
   };
 
   const sendMessage = (conversationId, text) => {
@@ -65,6 +94,7 @@ export const ChatProvider = ({ children }) => {
         messages,
         setMessages,
         typingUser,
+        updatedConvEvent,
         joinConversation,
         leaveConversation,
         sendMessage,

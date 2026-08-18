@@ -9,6 +9,8 @@ const setIo = (io) => {
   ioInstance = io;
 };
 
+const getIo = () => ioInstance;
+
 const createAndSendNotification = async ({
   recipientId,
   type,
@@ -49,5 +51,6 @@ const createAndSendNotification = async ({
 
 module.exports = {
   setIo,
+  getIo,
   createAndSendNotification,
 };

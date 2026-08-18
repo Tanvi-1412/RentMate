@@ -8,7 +8,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 const MessagesPage = () => {
   const { conversationId } = useParams();
   const { currentUser } = useAuth();
-  const { joinConversation, sendMessage, messages, setMessages, socket } = useChat();
+  const { joinConversation, sendMessage, messages, setMessages, socket, updatedConvEvent } = useChat();
   const navigate = useNavigate();
 
   const [conversations, setConversations] = useState([]);
@@ -34,6 +34,19 @@ const MessagesPage = () => {
         setLoading(false);
       });
   }, []);
+
+  // Update sidebar list in real time when a new message arrives
+  useEffect(() => {
+    if (updatedConvEvent) {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === updatedConvEvent.conversationId
+            ? { ...c, lastMessage: updatedConvEvent.lastMessage, lastMessageAt: updatedConvEvent.lastMessageAt }
+            : c
+        )
+      );
+    }
+  }, [updatedConvEvent]);
 
   // Determine active conversation ID (from URL param or default to first conversation)
   const activeId = conversationId || (conversations.length > 0 ? conversations[0]._id : null);
@@ -112,13 +125,6 @@ const MessagesPage = () => {
   const activeOtherUser = selectedConv ? getOtherParticipant(selectedConv.participants) : null;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Real-Time Chat</h1>
-          <p className="page-subtitle">Socket.IO instant messaging between KITCOEK students</p>
-        </div>
-      </div>
 
       <div className="chat-container">
         {/* Sidebar */}

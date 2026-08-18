@@ -60,6 +60,9 @@ const initChatSocket = (io) => {
       try {
         if (!text || !text.trim()) return;
 
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) return;
+
         const message = await saveMessage(conversationId, socket.userId, text.trim());
         const populatedMsg = {
           _id: message._id,
@@ -69,8 +72,23 @@ const initChatSocket = (io) => {
           createdAt: message.createdAt,
         };
 
+        // Broadcast to conversation room
         io.to(conversationId).emit('receiveMessage', populatedMsg);
+
+        // Also broadcast directly to all participants' user rooms for real-time sidebar & instant updates
+        conversation.participants.forEach((p) => {
+          if (p) {
+            const pIdStr = p._id ? p._id.toString() : p.toString();
+            io.to(pIdStr).emit('receiveMessage', populatedMsg);
+            io.to(pIdStr).emit('conversationUpdated', {
+              conversationId,
+              lastMessage: text.trim(),
+              lastMessageAt: message.createdAt,
+            });
+          }
+        });
       } catch (err) {
+        console.error('[Socket.IO SendMessage Error]', err);
         socket.emit('error', { message: 'Error sending message' });
       }
     });

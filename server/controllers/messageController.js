@@ -59,6 +59,24 @@ const postMessage = async (req, res, next) => {
     const message = await saveMessage(conversationId, req.user.userId, text.trim());
     const populated = await Message.findById(message._id).populate('senderId', 'name profileImage');
 
+    // Broadcast over Socket.IO to real-time clients
+    const { getIo } = require('../services/notificationService');
+    const io = getIo();
+    if (io) {
+      io.to(conversationId).emit('receiveMessage', populated);
+      conversation.participants.forEach((p) => {
+        if (p) {
+          const pIdStr = p._id ? p._id.toString() : p.toString();
+          io.to(pIdStr).emit('receiveMessage', populated);
+          io.to(pIdStr).emit('conversationUpdated', {
+            conversationId,
+            lastMessage: text.trim(),
+            lastMessageAt: message.createdAt,
+          });
+        }
+      });
+    }
+
     return sendSuccess(res, 201, 'Message sent', populated);
   } catch (error) {
     next(error);
